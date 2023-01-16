@@ -1,3 +1,4 @@
-webpage.Rproj*
-.Rpro*
-*.hugo*
+.Rprofile
+webpage.Rproj
+.hugo_build.lock
+.Rproj.user/*
