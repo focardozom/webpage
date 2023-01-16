@@ -9,8 +9,9 @@ body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     padding: 2rem;
-    background: hsla(93, 0%, 96%, 1.00);
     color: #000;
+    background-color:#F2F2F2;
+    ;
 }
 
 .skip-link {
@@ -31,6 +32,7 @@ body {
 h1, h2, h3, h4, h5, strong, b {
     font-size: inherit;
     font-weight: 600;
+    color: #578C3E;
     //text-transform: uppercase;
 }
 
