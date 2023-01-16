@@ -2,3 +2,6 @@
 webpage.Rproj
 .hugo_build.lock
 .Rproj.user/*
+.Rproj.user
+.RData
+.Rhistory
