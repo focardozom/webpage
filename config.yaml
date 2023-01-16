@@ -1,6 +1,6 @@
 baseURL: https://maverick.canhtran.me
 languageCode: en-us
-title: Maverick
+title: Francisco Cardozo
 paginate: 3
 theme: maverick
 permalinks:
@@ -8,9 +8,9 @@ permalinks:
 params:
   author: Calvin Tran
   comments:
-    githubRepo: canhtran/maverick
+    githubRepo: focardozom
     theme: github-light
-  description: A minimal hugo theme focus on content
+  description: personal webpage
   logo: /assets/favicon.ico
 menu:
   main:
