@@ -6,9 +6,9 @@ theme: maverick
 permalinks:
   pages: /:slug
 params:
-  author: Calvin Tran
+  author: Francisco Cardozo
   comments:
-    githubRepo: focardozom
+    githubRepo: focardozom/webpage
     theme: github-light
   description: personal webpage
   logo: /assets/favicon.ico
