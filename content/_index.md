@@ -6,7 +6,7 @@ Welcome to my webpage! My name is Francisco, and I am a psychologist with a pass
 
 On this page, you will learn about my background and qualifications in the field of program evaluation, including my primary area of research in the prevention of alcohol use among adolescents, my experience in using statistical methods to evaluate program efficacy, and my current Ph.D studies in Prevention Science at the University of Miami.
 
-You will also discover that I am a data analysis geek, proficient in using software such as R, Julia, and Python to analyze data and uncover insights, and develop projects to make a positive difference in people's lives.
+You will find that I am a data analysis enthusiast, skilled in utilizing software like R, Julia, and Python to process data, gain insights, and create projects that positively impact individuals and communities.
 
 I am currently the Director of Data Analysis at Figure 01, an enterprise dedicated to conducting program evaluations.
 
