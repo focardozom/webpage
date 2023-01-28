@@ -10,11 +10,12 @@ You will find that I am a data analysis enthusiast, skilled in utilizing softwar
 
 Thank you for visiting my webpage. I hope you find it informative. If you have any further questions or would like to learn more about my work, please do not hesitate to contact me.
 
--   [![](img/github.svg) GitHub](https://github.com/focardozom)
 -   📰 [CV](https://github.com/focardozom/cv/blob/main/cv/cv.pdf)
 -   🧑 [Teaching](https://github.com/focardozom/Advanced-Research-Methods)
 -   📝 [Publications](https://orcid.org/0000-0002-1925-4954)
+-   [![](img/github.svg) GitHub](https://github.com/focardozom)
 
-# Projects
+# Web Projects
 
 - [Bussiness that Care Toolkit](https://test-toolkit.netlify.app/)
+- [Thrusworthy](https://francisco-cardozo.shinyapps.io/thrusworthy/)
