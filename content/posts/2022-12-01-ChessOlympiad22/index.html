@@ -1,0 +1,187 @@
+---
+title: "Chess Olympiad 2022"
+author: "Francisco Cardozo"
+date: 2022-12-01
+categories: ["R"]
+tags: ["Chess", "Trees", "Machine Learning"]
+---
+
+
+
+<pre class="r"><code>library(ChessOlympiad22)</code></pre>
+<div id="does-elo-predict-the-wining-move" class="section level1">
+<h1>Does ELO predict the wining move?</h1>
+<p>The ELO rating system is a method for calculating the relative skill levels of chess players. The rating is based on the results of games played, and is used to compare the strength of one player to another. The higher a player’s ELO rating, the more skilled they are considered to be.</p>
+<p>In this document, the ELO difference between two players is used to evaluate the probability of one player winning the match.</p>
+<div id="libraries" class="section level3">
+<h3>Libraries</h3>
+<pre class="r"><code>
+library(rpart.plot)
+library(tidymodels)</code></pre>
+</div>
+<div id="load-the-players-data" class="section level3">
+<h3>Load the players data</h3>
+<pre class="r"><code>data(&quot;players&quot;)</code></pre>
+</div>
+<div id="distribution-of-elo" class="section level3">
+<h3>Distribution of ELO</h3>
+<p>First, let’s visualize the ELO distribution of the players.</p>
+<p>It is important to filter out players with an ELO rating of zero from the analysis, as these players have not yet been rated and do not have a known skill level.</p>
+<pre class="r"><code>players %&gt;% 
+  filter(rtg!=0) %&gt;% 
+  ggplot(aes(rtg)) + 
+  geom_histogram(bins = 50, fill=&quot;gray20&quot;) +
+  scale_x_continuous(breaks = seq(1000,2900,100))+
+  theme_minimal() +
+  coord_flip() +
+  theme(axis.text = element_text(&quot;&quot;)) +
+  labs(x=&quot;Elo Rating System (player strength)&quot;,
+       y=&quot;Number of players&quot;,
+       title = &quot;Elo Rating System of players in Chess Olympiad, 2022. 
+       Chennai, India &quot;,
+       caption = &quot;Magnus Carlsen has the highest Elo rating in the tournoment:2864&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/plots-with-palyers-1.png" width="672" /></p>
+<p>It may be interesting to plot the ELO ratings of players by federation, as the Chess Olympiad is played by national teams. By examining the ELO ratings of players within each federation, we can get a sense of the overall strength of the teams participating in the event. This analysis could potentially provide insight into the results of the Chess Olympiad and help predict the outcomes of matches.</p>
+<pre class="r"><code>players %&gt;% 
+  filter(rtg&gt;2600) %&gt;% 
+  ggplot(aes(reorder(fed, rtg),rtg)) + 
+  theme_minimal() +
+  geom_boxplot() +
+  coord_flip() +
+  labs(x=&quot;&quot;, y=&quot;ELO&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/elo-by-federation-1.png" width="672" /></p>
+<p>The United States have the strongest team in the tournament.</p>
+</div>
+<div id="load-results-data" class="section level3">
+<h3>Load results data</h3>
+<pre class="r"><code>data(&quot;results&quot;)</code></pre>
+</div>
+<div id="differences-in-elo-by-round" class="section level3">
+<h3>Differences in ELO by round</h3>
+<p>The Chess Olympiad was a Swiss-style tournament, which means that players are paired against opponents with similar scores in each round. In the first round, the highest-ranked player is matched against the player in the middle of the ELO rating distribution. The second highest-ranked player is then matched against the player just below the player in the middle of the ELO rating distribution, and so on. This implies that ELO differences are maximized in the first round. Then, the pairings for each subsequent round are determined based on the results of the previous rounds, with the goal of ensuring that players face opponents with similar scores.</p>
+<p>A visual representation of the differences in ELO by round are presented in the following graph.</p>
+<pre class="r"><code>
+results %&gt;% 
+  filter(elo_difference&gt;=-1000, 
+         elo_difference&lt;=1000, 
+         !is.na(elo_white), !is.na(elo_black), elo_white!=0,elo_black!=0) %&gt;% 
+  ggplot(aes(as.numeric(elo_white),elo_difference, 
+             fill=factor(result_white), 
+             color=factor(result_white))) + 
+  geom_point(shape = 21, alpha=0.85,
+             size = 3, stroke = 0.5) +
+  theme_minimal() +
+  scale_fill_manual(values=c(&quot;Lost&quot;=&quot;black&quot;, &quot;Draw&quot;=&quot;gray50&quot;,&quot;Won&quot;=&quot;white&quot;)) +
+  scale_color_manual(values=c(&quot;Lost&quot;=&quot;black&quot;, &quot;Draw&quot;=&quot;black&quot;,&quot;Won&quot;=&quot;black&quot;)) +
+  labs(fill=&quot;Result&quot;, color=&quot;Result&quot;, 
+       x=&quot;Player Elo&quot;, 
+       y=&quot;Elo difference&quot;,
+       caption = &quot;Difference greater than zero indicates stronger player
+       44th Chess Olympiad. Chennai, 2022 Open&quot;) +
+  facet_wrap(~ round)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/plot-data-diff-1.png" width="672" /></p>
+</div>
+</div>
+<div id="model-the-winning-chances-for-players-with-the-white-pieces-based-on-elo-difference." class="section level1">
+<h1>Model the winning chances for players with the white pieces based on ELO difference.</h1>
+<p>Now, we can identify the best split of the differences in ELO ratings to classify the results of chess games. I will use <code>tidymodels</code> to estimate a CART model.</p>
+<div id="set-the-engine" class="section level3">
+<h3>Set the engine</h3>
+<pre class="r"><code>cart_spec &lt;-
+   decision_tree() %&gt;% 
+   set_engine(&quot;rpart&quot;) %&gt;%
+   set_mode(&quot;classification&quot;)</code></pre>
+</div>
+<div id="create-a-recipie" class="section level3">
+<h3>Create a recipie</h3>
+<p>I will add two steps in the recipe. One to filter the data set by round, and the other to convert results in a factor variable. I also will limit my analysis to players with more than 1600 in ELO.</p>
+<pre class="r"><code>results &lt;- results %&gt;% 
+  filter(as.numeric(elo_white)&gt;1600) %&gt;% 
+  filter(as.numeric(elo_black)&gt;1600) 
+
+recipe &lt;- recipe(
+  result_white ~ elo_difference + round_number, data = results) %&gt;% 
+    step_filter(round_number==round)
+  </code></pre>
+</div>
+<div id="create-a-workflow" class="section level3">
+<h3>Create a workflow</h3>
+<pre class="r"><code>wrkfl &lt;- workflow() %&gt;% 
+  add_model(cart_spec) %&gt;% 
+  add_recipe(recipe)</code></pre>
+</div>
+<div id="estimate-the-model" class="section level3">
+<h3>Estimate the model</h3>
+<p>I will estimate the model for the round 1.</p>
+<pre class="r"><code>
+round &lt;- 1
+
+cart_fit &lt;- wrkfl %&gt;% 
+  fit(data=results) %&gt;% 
+  extract_fit_parsnip()</code></pre>
+</div>
+<div id="draw-an-tree-to-understand-the-results" class="section level3">
+<h3>Draw an tree to understand the results</h3>
+<p>Finally, I will create a tree showing the splits</p>
+<pre class="r"><code>
+cart_fit &lt;- repair_call(cart_fit, data = round)
+
+cart_tree_fit &lt;- cart_fit$fit
+
+
+rpart.plot::rpart.plot(cart_tree_fit, roundint = FALSE)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/draw-tree-1.png" width="672" /></p>
+<pre class="r"><code>rpart.rules(cart_tree_fit, cover = TRUE)
+#&gt; Warning: Cannot retrieve the data used to build the model (so cannot determine roundint and is.binary for the variables).
+#&gt; To silence this warning:
+#&gt;     Call rpart.rules with roundint=FALSE,
+#&gt;     or rebuild the rpart model with model=TRUE.
+#&gt;   ..y  Dra Los Won                               cover
+#&gt;  Lost [.09 .91 .00] when elo_difference &lt;  -12     51%
+#&gt;   Won [.04 .01 .95] when elo_difference &gt;= -12     49%</code></pre>
+<p>According to the model, a difference of 12 in the ELO is sufficient to accurately predict the winner in 95% of cases and the loser in 91% of cases.</p>
+</div>
+</div>
+<div id="model-the-last-round" class="section level1">
+<h1>Model the last round</h1>
+<p>Let’s test the model for the final round, where the matches happened between the strongest opponents.</p>
+<p>I will add a the <code>tree_depth</code> parameter to my model. The depth of the tree refers to the number of levels the tree has.</p>
+<pre class="r"><code>cart_spec &lt;-
+   decision_tree(tree_depth = 4) %&gt;% 
+   set_engine(&quot;rpart&quot;) %&gt;%
+   set_mode(&quot;classification&quot;)
+
+wrkfl &lt;- workflow() %&gt;% 
+  add_model(cart_spec) %&gt;% 
+  add_recipe(recipe)</code></pre>
+<pre class="r"><code>round &lt;- 11
+
+cart_fit &lt;- wrkfl %&gt;% 
+  fit(data=results)
+
+cart_fit &lt;- wrkfl %&gt;% 
+  fit(data=results) %&gt;% 
+  extract_fit_parsnip()
+
+cart_fit &lt;- repair_call(cart_fit, data = round)
+
+cart_tree_fit &lt;- cart_fit$fit
+
+rpart.plot::rpart.plot(cart_tree_fit, roundint = FALSE)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/round2-1.png" width="672" /></p>
+<pre class="r"><code>rpart.rules(cart_tree_fit, cover = TRUE)
+#&gt; Warning: Cannot retrieve the data used to build the model (so cannot determine roundint and is.binary for the variables).
+#&gt; To silence this warning:
+#&gt;     Call rpart.rules with roundint=FALSE,
+#&gt;     or rebuild the rpart model with model=TRUE.
+#&gt;   ..y  Dra Los Won                                       cover
+#&gt;  Draw [.45 .30 .25] when elo_difference is -176 to  85     51%
+#&gt;  Draw [.55 .09 .36] when elo_difference &gt;=         333      4%
+#&gt;  Draw [.69 .15 .15] when elo_difference is   95 to 115      4%
+#&gt;  Lost [.29 .61 .10] when elo_difference &lt;  -176            20%
+#&gt;   Won [.10 .30 .60] when elo_difference is   85 to  95      3%
+#&gt;   Won [.17 .20 .63] when elo_difference is  115 to 333     18%</code></pre>
+<p>The colors of the leaves in the decision tree suggest that ELO differences continue to be an important factor in the final round of the chess tournament. The model appears to be more accurate at predicting the outcomes of games with large ELO differences. For example, if you have more than 333 points in ELO, the model predicts 63% wining chances for you. However, if the ELO difference is less than 333 (but more than 115), the model predicts 55% of draw.</p>
+<p>When the ELO difference is less than 115, the model’s predictions become more interesting. If a player has 176 points less than their opponent, the model is more likely to classify them as a loser (61%). However, if the ELO difference is less than 85 points, the player still has a good chance of winning the game. This could be seen as an indicator of the performance of some players with lower ELO ratings who are having a strong tournament. On the other hand, if the ELO difference is greater than 85 points, most of the chances are for a draw.</p>
+<p>This was a quick example of how to use ChessOlympiad package.</p>
+</div>
