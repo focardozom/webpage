@@ -18,7 +18,6 @@ library(ChessOlympiad22)
 ```
 
 
-
 # Does ELO predict the wining move?
 
 The ELO rating system is a method for calculating the relative skill levels of chess players. The rating is based on the results of games played, and is used to compare the strength of one player to another. The higher a player's ELO rating, the more skilled they are considered to be.
