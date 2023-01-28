@@ -19,3 +19,9 @@ Thank you for visiting my webpage. I hope you find it informative. If you have a
 
 - [Bussiness that Care Toolkit](https://test-toolkit.netlify.app/)
 - [Thrusworthy](https://francisco-cardozo.shinyapps.io/thrusworthy/)
+
+# R Packages
+
+- [rUM](https://raymondbalise.github.io/rUM/)
+- [DocumentData](https://github.com/focardozom/DocumentData)
+- [ChessOlympiad](https://github.com/focardozom/ChessOlympiad22)
