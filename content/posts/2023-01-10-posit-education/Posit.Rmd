@@ -6,7 +6,7 @@ categories: ["Teaching"]
 tags: ["POSIT", "YouTube", "Learning"]
 ---
 
-I recently watched a presentation by Garrett Grolemund, the Director of Learning at Rstudio, on the POSIT Enterprise Community Meetup on YouTube. I wanted to share with you some of the interesting thoughts about teaching R that he mentioned. These are my notes, and I've also included transcripts and highlighted the parts that I found particularly noteworthy.
+I recently watched a presentation by Garrett Grolemund, the Director of Learning at Rstudio, on the POSIT Enterprise Community Meetup on YouTube. I wanted to share with you some of the interesting thoughts about teaching R that he mentioned.
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/ElO5gDCG3X8?start=19" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
