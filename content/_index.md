@@ -22,6 +22,5 @@ Thank you for visiting my webpage. I hope you find it informative. If you have a
 
 # R Packages
 
-- [rUM](https://raymondbalise.github.io/rUM/)
 - [DocumentData](https://github.com/focardozom/DocumentData)
 - [ChessOlympiad](https://github.com/focardozom/ChessOlympiad22)
