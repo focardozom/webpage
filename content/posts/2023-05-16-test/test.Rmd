@@ -1,8 +1,34 @@
 ---
-title: "An Introduction to the Recipes Package for Data Preprocessing"
+title: "test"
 output: html_document
 date: "2023-05-10"
 categories: ["Tidymodels"]
 tags: ["Packages"]
 ---
-this is a test.
+
+# 1. Observational studies and propensity score ⚖️
+
+-   Conceptual stage
+-   Design stage
+-   Statistical analysis
+-   Summary
+
+## Conceptual
+
+Formulation of the causal question and assumptions using potential
+outcomes. Formulated as a randomized experiment.
+
+## Design stage
+
+Reconstruct or approximate the design of a randomized experiment
+(independence between treatment assignment and covariates). Needs to
+conduct balance diagnostic.
+
+## Statistical analysis
+
+Compare outcomes by treatment. This stage is similar to the standard
+model-based analysis.
+
+## Summary
+
+Conclusion based on your estimates.
