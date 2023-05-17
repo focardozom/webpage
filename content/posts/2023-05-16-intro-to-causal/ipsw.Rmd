@@ -3,14 +3,8 @@ title: "Intro to causal inference"
 date: "2023-09-29"
 author: 
   - Francisco Cardozo
-output:
-  html:
-    toc: true
-    theme: pulse
-    code-fold: true
-    fontsize: 0.9em
-editor_options: 
-  chunk_output_type: console
+categories: ["Causal Inference"]
+tags: ["Alcohol", "Marijuana", "Learning"]
 ---
 
 # 1. Observational studies and propensity score ⚖️
@@ -603,5 +597,5 @@ diff_diff2 %>% group_by(treatment, year) %>%
 
 # Reference
 
-Bind, M.-A. C., & Rubin, D. B. (2019). Bridging observational studies and randomized experiments by embedding the former in the latter. Statistical Methods in Medical Research, 28(7), 1958–1978. https://doi.org/10.1177/0962280217740609
+Bind, M. , & Rubin, D. (2019). Bridging observational studies and randomized experiments by embedding the former in the latter. Statistical Methods in Medical Research, 28(7), 1958–1978. https://doi.org/10.1177/0962280217740609
 
