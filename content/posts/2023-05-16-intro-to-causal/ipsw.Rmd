@@ -1,9 +1,9 @@
 ---
 title: "Intro to causal inference"
-date: 2022-09-29
+date: "2023-09-29"
 author: 
   - Francisco Cardozo
-format:
+output:
   html:
     self-contained: true
     toc: true
