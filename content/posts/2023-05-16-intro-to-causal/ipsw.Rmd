@@ -5,16 +5,12 @@ author:
   - Francisco Cardozo
 output:
   html:
-    self-contained: true
     toc: true
     theme: pulse
     code-fold: true
     fontsize: 0.9em
 editor_options: 
   chunk_output_type: console
-editor: 
-  markdown: 
-    wrap: 72
 ---
 
 # 1. Observational studies and propensity score ⚖️
