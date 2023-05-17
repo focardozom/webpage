@@ -32,3 +32,75 @@ model-based analysis.
 ## Summary
 
 Conclusion based on your estimates.
+
+
+```{r libraries, message=FALSE}
+
+library(tidyverse) # data manipulation
+library(skimr) # Good for descriptive analysis 
+library(tidymodels) # modeling
+library(gt)  # To create pretty tables
+library(table1) # To create pretty tables
+tidymodels_prefer() # to avoid problems with two functions with the same name
+```
+
+## 1. Conceptual stage
+
+> What is the effect of alcohol consumption on marihuana use?
+
+### Dataset
+
+Selected data from YRBS
+
+```{r load-data}
+#load("Causal_inference/small_data.rda")
+load("small_data.rda")
+
+small_data  |> skimr::skim()
+
+```
+
+### Demographic variables
+
+-   Age
+-   Sex
+
+### Outcome
+
+-   Q46. How old were you when you tried marijuana for the first
+    time? A. I have never tried marijuana B. 8 years old or younger C. 9
+    or 10 years old D. 11 or 12 years old E. 13 or 14 years old F. 15 or
+    16 years old G. 17 years old or older
+
+-   marijuana: recoded as 0 (never used) 1 (used)
+
+### Alcohol use ("Treatment")
+
+-   Q40. How old were you when you had your first drink of alcohol other
+    than a few sips? A. I have never had a drink of alcohol other than a
+    few sips B. 8 years old or younger C. 9 or 10 years old D. 11 or 12
+    years old E. 13 or 14 years old F. 15 or 16 years old G. 17 years
+    old or older
+
+-   alcohol: recoded as 0 (never used) 1 (used)
+
+### Questions about drug use
+
+-   Q30. Have you ever tried cigarette smoking, even one or two puffs?
+-   Q50. During your life, how many times have you used any form of
+    cocaine, including powder, crack, or freebase?
+-   Q51. During your life, how many times have you sniffed glue,
+    breathed the contents of aerosol spray cans, or inhaled any paints
+    or sprays to get high?
+-   Q52. During your life, how many times have you used heroin (also
+    called smack, junk, or China White)?
+-   Q53. During your life, how many times have you used methamphetamines
+    (also called speed, crystal meth, crank, ice, or meth)?
+-   Q54. During your life, how many times have you used ecstasy (also
+    called MDMA)?
+-   Q55. During your life, how many times have you taken steroid pills
+    or shots without a doctor's prescription?
+-   Q56. During your life, how many times have you used a needle to
+    inject any illegal drug into your body?
+-   Q57. During the past 12 months, has anyone offered, sold, or given
+    you an illegal drug on school property?
