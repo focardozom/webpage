@@ -1,0 +1,611 @@
+---
+title: "Intro to causal inference"
+date: 2022-09-29
+author: 
+  - Francisco Cardozo
+format:
+  html:
+    self-contained: true
+    toc: true
+    theme: pulse
+    code-fold: true
+    fontsize: 0.9em
+editor_options: 
+  chunk_output_type: console
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+# 1. Observational studies and propensity score ⚖️
+
+-   Conceptual stage
+-   Design stage
+-   Statistical analysis
+-   Summary
+
+## Conceptual
+
+Formulation of the causal question and assumptions using potential
+outcomes. Formulated as a randomized experiment.
+
+## Design stage
+
+Reconstruct or approximate the design of a randomized experiment
+(independence between treatment assignment and covariates). Needs to
+conduct balance diagnostic.
+
+## Statistical analysis
+
+Compare outcomes by treatment. This stage is similar to the standard
+model-based analysis.
+
+## Summary
+
+Conclusion based on your estimates.
+
+# Example 
+
+```{r libraries, message=FALSE}
+
+library(tidyverse) # data manipulation
+library(skimr) # Good for descriptive analysis 
+library(tidymodels) # modeling
+library(gt)  # To create pretty tables
+library(table1) # To create pretty tables
+tidymodels_prefer() # to avoid problems with two functions with the same name
+```
+
+## 1. Conceptual stage
+
+> What is the effect of alcohol consumption on marihuana use?
+
+### Dataset
+
+Selected data from YRBS
+
+```{r load-data}
+#load("Causal_inference/small_data.rda")
+load("small_data.rda")
+
+small_data  |> skimr::skim()
+
+```
+
+### Demographic variables
+
+-   Age
+-   Sex
+
+### Outcome
+
+-   Q46. How old were you when you tried marijuana for the first
+    time? A. I have never tried marijuana B. 8 years old or younger C. 9
+    or 10 years old D. 11 or 12 years old E. 13 or 14 years old F. 15 or
+    16 years old G. 17 years old or older
+
+-   marijuana: recoded as 0 (never used) 1 (used)
+
+### Alcohol use ("Treatment")
+
+-   Q40. How old were you when you had your first drink of alcohol other
+    than a few sips? A. I have never had a drink of alcohol other than a
+    few sips B. 8 years old or younger C. 9 or 10 years old D. 11 or 12
+    years old E. 13 or 14 years old F. 15 or 16 years old G. 17 years
+    old or older
+
+-   alcohol: recoded as 0 (never used) 1 (used)
+
+### Questions about drug use
+
+-   Q30. Have you ever tried cigarette smoking, even one or two puffs?
+-   Q50. During your life, how many times have you used any form of
+    cocaine, including powder, crack, or freebase?
+-   Q51. During your life, how many times have you sniffed glue,
+    breathed the contents of aerosol spray cans, or inhaled any paints
+    or sprays to get high?
+-   Q52. During your life, how many times have you used heroin (also
+    called smack, junk, or China White)?
+-   Q53. During your life, how many times have you used methamphetamines
+    (also called speed, crystal meth, crank, ice, or meth)?
+-   Q54. During your life, how many times have you used ecstasy (also
+    called MDMA)?
+-   Q55. During your life, how many times have you taken steroid pills
+    or shots without a doctor's prescription?
+-   Q56. During your life, how many times have you used a needle to
+    inject any illegal drug into your body?
+-   Q57. During the past 12 months, has anyone offered, sold, or given
+    you an illegal drug on school property?
+
+### Filter by year
+
+```{r filter-2019}
+
+data_2019 <- small_data %>% 
+  filter(year==2019) %>% 
+  select(-district, -state)
+  
+```
+
+## 2. Design stage (A)
+
+### Balance diagnostic
+
+```{r balance-age, warning=FALSE, message=FALSE}
+data_2019 %>% 
+  ggplot(aes(age, 
+             fill=alcohol)) +
+  geom_density(size=1, adjust=5, alpha=0.2) +
+  theme_minimal()
+```
+
+```{r balance-sex, warning=FALSE, message=FALSE}
+data_2019 %>% 
+  filter(!is.na(alcohol)) %>% 
+  mutate(sex=if_else(sex==1,1,0)) %>% 
+  group_by(alcohol) %>% 
+  summarise(`Females proportion`=
+              mean(as.numeric(as.character(sex)), na.rm=T)) %>% 
+  ggplot(aes(alcohol, `Females proportion`, fill=alcohol)) +
+  geom_bar(stat="identity") +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  scale_fill_manual(values = c("purple", "gold"))
+```
+
+```{r balance-drug, warning=FALSE, message=FALSE}
+data_2019 %>% 
+  select(c("alcohol",  "q30", "q50", "q51","q52",
+           "q53", "q54", "q55", "q56")) %>% 
+  filter(!is.na(alcohol)) %>% 
+  pivot_longer(cols=-alcohol, 
+               names_to = "Drugs", 
+               values_to="Use" ) %>% 
+  group_by(alcohol, Drugs) %>% 
+  summarise(prevalence=mean(Use, na.rm=T)) %>% 
+  ggplot(aes(alcohol, prevalence)) +
+  geom_bar(stat="identity") + 
+  facet_wrap(~ Drugs, scales = "free") +
+  theme_minimal()
+
+```
+
+```{r polyuse, warning=FALSE, message=FALSE}
+
+data_2019 %>% 
+  filter(!is.na(alcohol)) %>% 
+  select(c("alcohol",  "q30", "q50", "q51","q52",
+           "q53", "q54", "q55", "q56")) %>% 
+  mutate(id=row_number()) %>% 
+  pivot_longer(cols=-c(alcohol,id), 
+               names_to = "Drugs", 
+               values_to="Use" ) %>% 
+  group_by(id, alcohol) %>% 
+  summarise(sum=sum(as.numeric(Use), na.rm = T)) %>% 
+  ungroup() %>% 
+  count(alcohol, sum) %>% 
+  pivot_wider(names_from = sum, values_from = n) %>% 
+  gt() %>% 
+  tab_header(
+    title = "Number of substances")
+  
+```
+
+## 2. Design stage (B)
+
+### Hypothetical scenario 1
+
+*No design; use all the information 0 and 1.*
+
+Complete randomized experiment. In the beginning, everyone was drinking,
+but we implemented an intervention to make them stop drinking with a 1/2
+probability. Then, we observed the use of marijuana in both groups.
+
+### Hypothetical scenario 2
+
+*Trimming for the number of drugs.*
+
+Students who used more than three drugs were dropped from the analysis
+because there were not enough participants in the control group with
+that number of drugs used.
+
+### Hypothetical scenario 3
+
+*Block or stratified randomized experiments.*
+
+Females and males were randomized into two different groups.
+
+### Hypothetical scenario 4
+
+*Propensity score, IPW, and caliper.*
+
+A completely randomized experiment with balanced groups. The balance
+between groups is achieved via inverse probability weighting (or
+matching or a caliper).
+
+### Hypothetical scenario 5
+
+*Randomized experiment controlling by base-line use of marijuana*
+
+Students who have not used marijuana are intervened to stop using
+alcohol with a probability of 1/2. Then we compared marijuana initiation
+in students who continued drinking alcohol to those who stopped.
+
+## 3. Analysis
+
+Compare the outcomes of interest in the exposed versus non-exposed units
+of the hypothetical randomized experiment.
+
+We will estimate hypothetical scenario 1 and 4.
+
+### Hypothetical scenario 1
+
+No design. Use all units available.
+
+```{r experiment1}
+
+glm(marijuana ~ alcohol, 
+    data=data_2019, 
+    family = "binomial") %>% 
+  tidy(exp=T, conf.int=T)
+  
+```
+
+### Hypothetical scenario 4
+
+**Inverse Probability Weighting (IPW)**
+
+Estimates two different models:
+
+-   Model to compute propensity score.
+
+-   Model to estimate the effect.
+
+### Estimate propensity score
+
+What engine do we want to use?
+
+```{r set-engine}
+
+logistic <- logistic_reg() %>%
+        set_engine("glm") %>%
+        set_mode("classification") 
+
+```
+
+What is the formula?
+
+```{r formula}
+
+formula_ps <- recipe(alcohol ~ age + sex +q30 +
+              q50 + q51 + q52 + q53 + q54+
+              q55 + q56 + q57, data = data_2019)
+```
+
+Combine the engine and formula in a workflow
+
+```{r workflow}
+
+treatment_wflow <-
+  workflow() |>  
+  add_recipe(formula_ps) |>
+  add_model(logistic)
+```
+
+Estimate the model
+
+```{r estimate-model1}
+fit(treatment_wflow, data=data_2019) |> 
+  tidy(conf.int=TRUE) 
+
+```
+
+Save the results of your model
+
+```{r save-model-results}
+treatment_results <- fit(treatment_wflow, data=data_2019) 
+```
+
+Plot the model results
+
+```{r plot-results-psm, warning=FALSE, message=FALSE}
+
+to_plot <- fit(treatment_wflow, data=data_2019) |> 
+  tidy(conf.int=TRUE) 
+
+ggplot(to_plot, aes(statistic, term)) +
+  geom_point() +
+  xlim(c(-19,19)) +
+  geom_vline(xintercept = c(1.96,-1.96)) 
+```
+
+Next, estimate the propensity score
+
+-   Estimate the probability of receiving treatment given the covariates
+-   Combine observed and estimated data (merge by ID)
+
+```{r predic-prob}
+
+to_ipw <- predict(treatment_results, new_data = data_2019, type="prob")
+
+to_ipw <- bind_cols(to_ipw, data_2019) %>% select(.pred_Yes, alcohol, everything())
+
+head(to_ipw)
+
+```
+
+Check for the area of common support
+
+```{r plot-propensities}
+
+to_ipw |> 
+  filter(!is.na(alcohol)) |> 
+  filter(!is.na(.pred_Yes)) |> 
+  group_by(alcohol) |> 
+  ggplot(aes(.pred_Yes, fill=alcohol)) +
+  geom_density(adjust = 2, alpha=0.3) +
+  theme_minimal()
+
+```
+
+Trim your data set
+
+```{r}
+to_ipw |> filter(!is.na(alcohol)) |> 
+  filter(!is.na(.pred_Yes)) |> 
+  ggplot(aes(.pred_Yes, fill=alcohol)) + 
+  geom_histogram(position = position_dodge(width = 0.1), binwidth = 0.09) +
+  theme_minimal() 
+
+to_ipw %>% table1(~ .pred_Yes | alcohol, data=.)
+
+to_ipw <- 
+to_ipw %>% 
+  filter(.pred_Yes > 0.25) %>% 
+  filter(.pred_Yes < 0.75)
+
+to_ipw %>%  filter(!is.na(alcohol)) |> 
+  filter(!is.na(.pred_Yes)) |> 
+  ggplot(aes(.pred_Yes, fill=alcohol)) + 
+  geom_histogram(position = position_dodge(width = 0.05), binwidth = 0.09) +
+  theme_minimal() 
+
+```
+
+Compute observation weights
+
+```{r compute-ipw}
+
+data_ipw <-
+  to_ipw |>
+  mutate(
+    ipw = case_when(
+      alcohol == "Yes" ~ 1 / .pred_Yes,
+      alcohol == "No" ~ 1 / (1 - .pred_Yes)
+    ),
+    ipw = importance_weights(ipw)
+  ) |>
+  select(ipw, alcohol, marijuana, everything())
+
+
+```
+
+### Check for balance between groups
+
+```{r estimate-using-ipw, warning=FALSE}
+
+ipw_test_recipe <- recipe(alcohol ~ age + sex +
+                            q30 + q50 + q51 + q52 + q53 + q54+
+                            q55 + q56 + ipw, data = data_ipw)
+
+
+
+ipw_test_wflow <-
+  workflow() |>
+  add_case_weights(ipw) |>
+  add_recipe(ipw_test_recipe) |>
+  add_model(logistic)
+
+fit(ipw_test_wflow, data = data_ipw) |>
+  tidy()
+
+to_plot_test_ipw <- fit(ipw_test_wflow, data = data_ipw) |>
+  tidy()
+
+ggplot(to_plot_test_ipw, aes(statistic, term)) +
+  geom_point() +
+  xlim(c(-19,19)) +
+  geom_vline(xintercept = c(1.96,-1.96)) 
+
+
+```
+
+### Fit the model to answer the question
+
+```{r fit-ipw-model, warning=FALSE}
+
+finaldata <- data_ipw |> 
+  select(marijuana, alcohol, ipw) 
+
+
+causal_effect_recipe <-
+  recipe(marijuana ~ ., 
+         data = finaldata)
+
+causal_effect_wflow <-
+  workflow() |>  
+  add_case_weights(ipw) |>
+  add_recipe(causal_effect_recipe) |>
+  add_model(logistic)
+
+fit(causal_effect_wflow, data = finaldata) |> 
+  tidy(exp=TRUE, conf.int=TRUE)
+
+```
+
+If you want, compare to a model with controls.
+
+```{r}
+glm(marijuana ~ alcohol + age + sex +q30 + q50 + q51 + q52 + 
+         q53 + q54 + q55 + q56, data = data_ipw, family = binomial) %>% 
+  tidy(exp=T)
+
+```
+
+What is the difference between IPW and the controlled model?
+
+### Prevalence of marijuana and alcohol
+
+```{r prevalence-marijuana}
+library(table1)
+data_2019 %>% 
+  select(alcohol, marijuana) %>% 
+  table1(~alcohol | marijuana, data = .)
+
+data_2019 %>% 
+  select(alcohol, marijuana) %>% 
+  table1(~marijuana | alcohol, data = .)
+```
+
+# 2. Differences in differences 🔀
+
+-   To evaluate the mean change after the implementation of an
+    intervention.
+-   Estimate the counterfactual based on a comparison group.
+
+![https://www.publichealth.columbia.edu/research/population-health-methods/difference-difference-estimation](did_imagen.png)
+
+## Example
+
+Using the YRBS data, estimate the effect of marijuana legalization on
+marijuana use in adolescents.
+
+> What is the effect of marijuana legalization on the use of marijuana?
+
+Define a control group. Choose the best control group.
+
+Timeline of marijuana policy reform in California
+
+2016: Voters approved a ballot initiative legalizing marijuana for
+adults and establishing a regulated marijuana market.
+
+2017: Licensing and regulatory system for medical marijuana businesses
+are paired with a similar regulatory system being developed for
+non-medical, now under one agency.
+
+2018: First legal sales for adult consumers began!
+
+from: https://www.mpp.org/states/california/
+
+The comparison group will be Florida.
+
+from:
+https://www.nytimes.com/interactive/2018/04/03/upshot/what-is-your-citys-twin.html
+
+```{r prepare-data}
+diff_diff <- small_data %>% 
+  mutate(marijuana=factor(marijuana)) %>%
+  mutate(nmarijuana=case_when(marijuana=="Yes" ~ 1, 
+                              marijuana=="No" ~ 0)) %>% 
+  select(state, year, marijuana, nmarijuana) %>% 
+  filter( state=="FL" |
+         state=="CA") %>% 
+  filter(year>=2017)
+
+head(diff_diff)
+```
+
+```{r plot-your-data, warning=FALSE, message=FALSE}
+
+diff_diff %>% 
+  ggplot(aes(x=year, y=nmarijuana, color=state, group=state)) +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), se=F) +
+  coord_cartesian(ylim = c(0.3,0.42)) +
+  theme_minimal() +
+  labs(y="Marihuana Prevalence", x="Year", color="State") +
+  scale_x_continuous(breaks = c(2017, 2019)) +
+  scale_y_continuous(labels = scales::"percent") +
+  scale_color_manual(values=c("orange", "skyblue"))
+  
+```
+
+### Organize the data
+
+```{r, create-dummy-treatment}
+diff_diff2 <-
+  diff_diff %>%
+  filter(!is.na(marijuana)) %>% 
+  mutate(treatment = case_when(
+    state == "CA" ~ 1,
+    state != "CA" ~ 0
+  )) %>%
+  mutate(year = year - 2017) %>%
+  mutate(interaction = treatment * year)
+
+head(diff_diff2)
+```
+
+### Estimate the regression
+
+Choose the engine
+
+```{r set-engine-2}
+
+logistic <- logistic_reg() %>%
+        set_engine("glm") %>%
+        set_mode("classification") 
+
+```
+
+### The formula
+
+[Click here](https://jamboard.google.com/d/14Wrq0iFfAFk-CIIilw3dGRQWIJ54WHWsYzs9YeysoXk/edit?usp=sharing) 
+
+```{r formula2}
+formula_did <- recipe(marijuana ~ year + treatment + interaction, data = diff_diff2)
+```
+
+### Estimation
+
+```{r estimate-effect2}
+did_wflow <-
+  workflow() |>  
+  add_recipe(formula_did) |>
+  add_model(logistic)
+
+fit(did_wflow, data=diff_diff2) |> 
+  tidy(conf.int=TRUE, exp=T) 
+
+did_results <- fit(did_wflow, data=diff_diff2) 
+
+
+```
+
+### Recover the prevalences from the model
+
+```{r create-x-values}
+to_predict <- as.data.frame(tibble(year=c(0,0,2,2),
+       treatment=c(1,0,1,0),
+      interaction=c(0,0,1,1)))
+```
+
+```{r predict-based-on-model}
+predict(did_results, new_data = to_predict, type="prob")
+
+```
+
+### Estimate the means for each group
+
+```{r, warning=FALSE, message=FALSE}
+diff_diff2 %>% group_by(treatment, year) %>% 
+  summarise(mean=mean(nmarijuana, na.rm=T)) %>% 
+  ungroup() %>% 
+  pivot_wider(names_from=year, values_from=mean)
+```
+
+# The end 🥳
+
+# Reference
+
+Bind, M.-A. C., & Rubin, D. B. (2019). Bridging observational studies and randomized experiments by embedding the former in the latter. Statistical Methods in Medical Research, 28(7), 1958–1978. https://doi.org/10.1177/0962280217740609
+
