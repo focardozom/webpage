@@ -1,8 +1,6 @@
 ---
 title: "Intro to causal inference"
 date: "2023-09-29"
-author: 
-  - Francisco Cardozo
 categories: ["Causal Inference"]
 tags: ["Alcohol", "Marijuana", "Learning"]
 ---
